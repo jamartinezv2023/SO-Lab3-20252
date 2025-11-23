@@ -1,0 +1,180 @@
+/* 
+ * Archivo: pi.c
+ * Propósito: Calcular una aproximación de π usando integración numérica serial.
+ * Compilación: gcc -o pi_s pi.c
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char *argv[])
+{
+    if (argc < 2) {
+        fprintf(stderr, "Uso: %s <n>\n", argv[0]);
+        return 1;
+    }
+
+    long long n = atoll(argv[1]);
+    if (n <= 0) {
+        fprintf(stderr, "n debe ser > 0\n");
+        return 1;
+    }
+
+    double h = 1.0 / (double)n;
+    double sum = 0.0;
+
+    for (long long i = 0; i < n; i++) {
+        double x = h * (i + 0.5);
+        sum += 4.0 / (1.0 + x * x);
+    }
+
+    double pi = h * sum;
+
+    printf("PI (serial) = %.12f\n", pi);
+    return 0;
+}
+
+
+
+/*
+ * Archivo: pi_p.c
+ * Propósito: Calcular π usando integración numérica paralela con pthreads.
+ * Compilación: gcc -o pi_p pi_p.c -lpthread
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+
+struct thread_arg {
+    long long start;
+    long long end;
+    long long n;
+    double h;
+    double sum;
+};
+
+void* worker(void *arg)
+{
+    struct thread_arg *a = (struct thread_arg*) arg;
+    double local_sum = 0.0;
+
+    for (long long i = a->start; i < a->end; ++i) {
+        double x = a->h * (i + 0.5);
+        local_sum += 4.0 / (1.0 + x * x);
+    }
+
+    a->sum = local_sum;
+    return NULL;
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc < 3) {
+        fprintf(stderr, "Uso: %s <n> <threads>\n", argv[0]);
+        return 1;
+    }
+
+    long long n = atoll(argv[1]);
+    int T = atoi(argv[2]);
+
+    if (n <= 0 || T <= 0) {
+        fprintf(stderr, "Parámetros inválidos\n");
+        return 1;
+    }
+
+    double h = 1.0 / (double)n;
+
+    pthread_t *threads = malloc(sizeof(pthread_t) * T);
+    struct thread_arg *args = malloc(sizeof(struct thread_arg) * T);
+
+    long long chunk = n / T;
+
+    for (int t = 0; t < T; ++t) {
+        args[t].start = t * chunk;
+        args[t].end   = (t == T - 1 ? n : (t + 1) * chunk);
+        args[t].n     = n;
+        args[t].h     = h;
+        args[t].sum   = 0.0;
+
+        pthread_create(&threads[t], NULL, worker, &args[t]);
+    }
+
+    double total = 0.0;
+    for (int t = 0; t < T; ++t) {
+        pthread_join(threads[t], NULL);
+        total += args[t].sum;
+    }
+
+    free(threads);
+    free(args);
+
+    double pi = total * h;
+
+    printf("PI (paralelo) = %.12f con %d hilos\n", pi, T);
+    return 0;
+}
+
+/*
+ * Archivo: fibonacci.c
+ * Propósito: Generar N números de Fibonacci en un hilo trabajador
+ * Compilación: gcc -o fibonacci fibonacci.c -lpthread
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+
+struct fib_arg {
+    long long *arr;
+    int N;
+};
+
+void *worker(void *arg)
+{
+    struct fib_arg *a = (struct fib_arg*) arg;
+
+    if (a->N >= 1) a->arr[0] = 0;
+    if (a->N >= 2) a->arr[1] = 1;
+
+    for (int i = 2; i < a->N; i++) {
+        a->arr[i] = a->arr[i - 1] + a->arr[i - 2];
+    }
+
+    return NULL;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc < 2) {
+        fprintf(stderr, "Uso: %s <N>\n", argv[0]);
+        return 1;
+    }
+
+    int N = atoi(argv[1]);
+    if (N <= 0) {
+        fprintf(stderr, "N debe ser > 0\n");
+        return 1;
+    }
+
+    long long *arr = malloc(sizeof(long long) * N);
+    if (!arr) {
+        perror("malloc");
+        return 1;
+    }
+
+    struct fib_arg arg;
+    arg.arr = arr;
+    arg.N   = N;
+
+    pthread_t th;
+    pthread_create(&th, NULL, worker, &arg);
+    pthread_join(th, NULL);
+
+    for (int i = 0; i < N; i++) {
+        printf("%lld\n", arr[i]);
+    }
+
+    free(arr);
+    return 0;
+}

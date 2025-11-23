@@ -1,0 +1,62 @@
+teleprompter = [
+    """Presentación inicial.
+Soy José Alfredo Martínez Valdés, estudiante de Ingeniería de Sistemas en la Universidad de Antioquia.
+Este video corresponde al Laboratorio 3 de Sistemas Operativos.
+En este laboratorio aplicamos paralelización con Pthreads, evaluando rendimiento, speedup y eficiencia.
+En esta diapositiva presento los datos institucionales, el contexto y el propósito general del trabajo.""",
+
+    """Objetivo del laboratorio.
+Aquí explico que buscamos implementar una versión serial y una paralela del cálculo de pi.
+El objetivo es comparar tiempos, analizar escalabilidad e identificar la influencia de los hilos en el rendimiento.
+También menciono la importancia del paralelismo real a nivel de CPU usando hilos POSIX.""",
+
+    """Versión serial del cálculo de pi.
+Explico que la aproximación se basa en la integral definida de 4/(1+x^2) desde 0 hasta 1.
+La versión serial divide el intervalo en n pasos y calcula el área con la regla del punto medio.
+Este tiempo serial es la base para calcular el speedup comparado con la versión paralela.""",
+
+    """Diseño del paralelo.
+Aquí explico cómo se divide el rango total de iteraciones entre T hilos.
+Cada hilo calcula su suma parcial de manera independiente.
+Enfatizo que se evita el uso de mutex dentro del bucle para eliminar contención y mejorar el rendimiento.
+El hilo principal recopila las sumas parciales con pthread_join.""",
+
+    """Detalle del reparto de carga.
+Cada hilo recibe un intervalo especificado por su identificador.
+Explico que este reparto equitativo permite aprovechar múltiples núcleos.
+Destaco que el uso de suma local en cada hilo evita conflictos en memoria compartida.
+Luego las sumas se combinan en la parte final del programa.""",
+
+    """Fibonacci con hilos.
+Aquí explico cómo el hilo principal reserva memoria para un arreglo de tamaño N.
+Luego crea un hilo trabajador que calcula la secuencia de Fibonacci desde el índice cero.
+El hilo trabajador llena el arreglo mientras el hilo principal espera mediante pthread_join.
+Esto demuestra una sincronización correcta sin condiciones de carrera.""",
+
+    """Sincronización con pthread_join.
+Explico que pthread_join garantiza que el hilo trabajador finalice antes de acceder al arreglo.
+Esto evita inconsistencias y garantiza resultados válidos.
+Es un mecanismo esencial en la programación concurrente usando hilos POSIX.
+Este punto es fundamental tanto para Fibonacci como para el cálculo paralelo de pi.""",
+
+    """Medición de tiempos.
+Aquí explico que se utiliza gettimeofday para medir el tiempo real del cálculo intensivo.
+Aclarar que solo se mide el bloque computacional para obtener resultados fiables.
+Explico por qué no se incluye el tiempo de impresión ni el tiempo de creación de hilos en la medición.""",
+
+    """Speedup.
+Aquí explico la fórmula speedup = Ts / Tp.
+Comento que el speedup mejora al aumentar el número de hilos, pero se observa una disminución de mejora al superar el número de núcleos físicos.
+Resalto que la escalabilidad nunca es perfecta debido a overhead y sincronización.""",
+
+    """Eficiencia.
+Explico que eficiencia = speedup / número de hilos.
+Comento que la eficiencia disminuye cuando agregamos más hilos, debido a limitaciones del hardware y sobrecarga de coordinación.
+Aun así, demuestra qué tan bien se utiliza el paralelismo disponible.""",
+
+    """Conclusiones finales.
+Resalto que el laboratorio permitió aplicar Pthreads para resolver problemas reales de paralelización.
+La versión paralela mostró mejoras respecto a la serial.
+Se observaron límites reales impuestos por el hardware.
+Finalmente, destaco el valor educativo del laboratorio para comprender concurrencia y optimización."""
+]

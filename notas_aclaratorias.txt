@@ -1,0 +1,6 @@
+Notas para el laboratorio 3
+
+Archivos de texto .c
+-Para hacer el cuaderno debo subir los archivos al colab
+-Debo agregar los archivos .c al colab
+-En el colab debo poner el link del video (
