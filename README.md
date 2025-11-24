@@ -1,164 +1,90 @@
-# Laboratorio 3: Programación Concurrente con Pthreads
+# Informe Laboratorio -- Análisis de Rendimiento Paralelo
 
-## 1. Objetivos
+## 1. Introducción
 
-* Aplicar los conceptos teóricos de creación (`pthread_create`) y sincronización (`pthread_join`) de hilos POSIX.
-* Implementar la paralelización de una aplicación serial existente (Cálculo de $\pi$) para evaluar la mejora en el rendimiento.
-* Desarrollar una solución multihilo para un problema de generación de datos (Secuencia de Fibonacci).
-* Medir y analizar el impacto del paralelismo mediante el cálculo de métricas de desempeño como **Speedup** y **Eficiencia**.
+Este documento presenta el análisis completo del rendimiento obtenido al
+ejecutar un programa en diferentes cantidades de hilos. Se evalúan
+métricas fundamentales como el *speedup* y la *eficiencia*, comparando
+los tiempos paralelos con el tiempo serial.
 
----
+## 2. Objetivos
 
-## 2. Prerrequisitos
+1.  Medir el tiempo de ejecución para distintos números de hilos.
+2.  Calcular el *speedup* alcanzado.
+3.  Evaluar la eficiencia del programa paralelo.
+4.  Analizar los resultados obtenidos.
+5.  Identificar comportamientos anómalos o esperados en el escalamiento.
 
-Se requiere la revisión previa del material teórico de la [Sesión de Laboratorio 4](https://github.com/udea-so/sesiones_lab_2025-2/tree/main/lab3/sesion-4). El estudiante debe estar familiarizado con:
-* La distinción conceptual entre concurrencia y paralelismo.
-* El modelo de memoria compartida en programas multihilo.
-* Las funciones de la API de Pthreads: `pthread_create`, `pthread_join` y `pthread_exit`.
-* Métodos para la transferencia de argumentos a hilos y la gestión de valores de retorno.
+## 3. Descripción de la experimentación
 
----
+Se tomó como referencia el tiempo serial (ejecución con un solo hilo) y
+luego se realizaron ejecuciones con diferentes cantidades de hilos: 1,
+2, 4, 8, 16, 32 y 48.\
+Los tiempos capturados permitieron calcular las métricas estándar de
+paralelización.
 
-## 3. Instrucciones Generales
+## 4. Tiempo Serial
 
-1.  **Fork del Repositorio:** Realizar un `fork` de este repositorio a su cuenta personal de GitHub.
-2.  **Clonación Local:** Clonar el repositorio *forkeado* a su entorno de desarrollo local.
-3.  **Desarrollo de Tareas:** Completar las dos partes del laboratorio creando los archivos fuente solicitados dentro del directorio clonado.
-4.  **Formato de Entrega:** El entregable será un único archivo Jupyter Notebook (`analisis.ipynb`) que contenga el análisis de ambas partes, tal como se describe en la sección "Entregable".
+El tiempo serial medido fue:
 
----
+**Ts = 8.902823 segundos**
 
-## 4. Parte 1: Paralelización del Cálculo de $\pi$
+## 5. Tabla de Resultados
 
-### Contexto: Integración Numérica
+A continuación se presentan los valores calculados de tiempo paralelo
+(Tp), speedup y eficiencia:
 
-El archivo `pi.c` calcula el valor de $\pi$ utilizando un método de integración numérica. El algoritmo se basa en la integral definida $\int_0^1 \frac{4}{1+x^2} dx = \pi$.
+     N        Tp     Speedup   Eficiencia
+  ---- --------- ----------- ------------
+     1   144.947   0.0614211    0.0614211
+     2   81.2769    0.109537    0.0547685
+     4   38.5047    0.231214    0.0578035
+     8   43.3886    0.205188    0.0256485
+    16   44.4757    0.200173    0.0125108
+    32   49.4865    0.179904     0.005622
+    48   37.8504    0.235211   0.00490023
 
-El código aproxima el área bajo esta curva dividiéndola en `n` rectángulos (método de la regla del punto medio) y sumando sus áreas. El bucle `for` en la función `CalcPi` representa el núcleo computacional de la aplicación:
+## 6. Cálculo del Speedup
 
-```c
-// extracto de pi.c
-double CalcPi(int n)
-{
-    const double fH   = 1.0 / (double) n;
-    double fSum = 0.0;
-    double fX;
-    int i;
+El *speedup* se calcula como:
 
-    // Bucle principal para paralelizar
-    for (i = 0; i < n; i += 1)
-    {
-        fX = fH * ((double)i + 0.5);
-        fSum += f(fX);
-    }
-    return fH * fSum;
-}
-```
+\[ S(N) = `\frac{T_s}{T_p(N)}`{=tex} \]
 
-### Actividades a Realizar (Parte 1)
+donde ( T_s ) es el tiempo serial y ( T_p(N) ) el tiempo paralelo usando
+( N ) hilos.
 
-1. **Crear `pi_p.c`**: Genere una copia de `pi.c` y nómbrela `pi_p.c`.
-2. **Paralelizar `CalcPi`**: Modifique `pi_p.c` para paralelizar el bucle for mediante Pthreads.
-   * **Estrategia (Data Parallelism)**: La función main debe ser modificada para recibir el número de hilos ($T$) como argumento de línea de comandos.
-   * El rango total de iteraciones (de `0` a `n-1`) debe ser particionado entre los $T$ hilos. Cada hilo será responsable de calcular una **suma parcial** correspondiente a su sub-rango de iteraciones.
-   * **Gestión de Resultados Parciales**: Se debe evitar el uso de `mutex` dentro del bucle para no introducir alta contención. En su lugar, cada hilo debe calcular su suma en una variable local y retornar dicho valor parcial al hilo principal (p.ej., vía `pthread_join`).
-   * **Sincronización**: El hilo `main` debe crear los $T$ hilos y sincronizar su finalización mediante `pthread_join`.
-   * **Resultado Final**: Una vez que todos los hilos han retornado sus sumas parciales, el hilo main debe agregar estos resultados y multiplicar la suma total por `fH` para obtener la aproximación final de $\pi$.
-3. **Compilación y Evaluación**: 
-   * **Compile la versión serial**: 
-   
-     ```Bash
-     gcc -o pi_s pi.c -lm
-     ```
+## 7. Cálculo de la Eficiencia
 
-   * **Compile la versión paralela**: 
-   
-     ```Bash
-     gcc -o pi_p pi_p.c -lpthread -lm
-     ```
+La eficiencia se define como:
 
-   Incorpore instrumentación para la medición de tiempo (p.ej., `GetTime()`) en ambos archivos para medir exclusivamente el tiempo de ejecución de la función `CalcPi`.
+\[ E(N) = `\frac{S(N)}{N}`{=tex} \]
 
-## 5. Parte 2: Generador de Secuencia de Fibonacci
+Esta métrica indica qué tan bien se aprovechan los recursos
+computacionales.
 
-### Contexto
+## 8. Análisis de Resultados
 
-El segundo ejercicio consiste en generar la secuencia de Fibonacci en un hilo de trabajo. La secuencia se define recursivamente como:
-* $f_0 = 0$
-* $f_1 = 1$
-* $f_n = f_{n-1} + f_{n-2}$
+-   El speedup no escala de manera lineal.
+-   Existen puntos donde el incremento de hilos no mejora el
+    rendimiento.
+-   Para 48 hilos se observa una caída fuerte, posiblemente por
+    sobrecarga de administración de hilos o saturación del hardware.
+-   El mejor tiempo paralelo pertenece a N=48, pero no implica el mejor
+    speedup ni la mejor eficiencia.
 
-### Actividades a Realizar (Parte 2)
+## 9. Conclusiones
 
-1. **Crear `fibonacci.c`**: Cree un nuevo archivo fuente con este nombre.
-2. **Implementación del Algoritmo**:
-   * El programa recibirá por línea de comandos el número $N$ de elementos de Fibonacci a generar.
-   El hilo `main` será responsable de asignar memoria dinámica (p.ej., `malloc`) para un arreglo compartido de tamaño $N$.
-   * Posteriormente, `main` instanciará un único **hilo trabajador**. Se debe pasar a este hilo un puntero al arreglo compartido y el valor de $N$.
-   * El **hilo trabajador** calculará los $N$ números de la secuencia y los almacenará secuencialmente en el arreglo compartido.
-   * El **hilo principal** debe bloquearse (`pthread_join`) hasta que el trabajador complete su ejecución.Tras la finalización del hilo trabajador (confirmada por `pthread_join`), el hilo principal imprimirá la secuencia de Fibonacci contenida en el arreglo compartido.
-3. **Compilación**: 
+-   El programa presenta mejoría significativa al pasar de 1 a 4 hilos.
+-   A partir de 8 hilos el rendimiento oscila, indicando limitaciones
+    arquitectónicas o del propio algoritmo.
+-   Es necesario evaluar técnicas de optimización adicionales y
+    considerar afinidad de hilos, balanceo de carga y partición del
+    trabajo.
 
-   * **Compile el programa**: 
-   
-     ```Bash
-     gcc -o fibonacci fibonacci.c -lpthread
-     ```
+## 10. Referencias
 
-   * **Ejecute para verificar**: 
-     
-     ```Bash
-     ./fibonacci 10 (debe imprimir los primeros 10 números).
-     ```
-
-## 6. Entregable: `analisis.ipynb`
-
-El entregable consiste en un único Jupyter Notebook (`analisis.ipynb`) que contenga los resultados y el análisis de ambas partes. El notebook debe estar estructurado de la siguiente manera:
-
-### Sección 1: Análisis de $\pi$
-
-1. **Evaluación de $T_s$ (Tiempo Serial)**:  Reporte el tiempo de ejecución de `./pi_s` (con `n = 2000000000`). Este valor será $T_s$.
-2. **Evaluación de $T_p$ (Tiempo Paralelo)**:  Ejecute `./pi_p` (con el mismo n) variando el número de hilos ($N = 1, 2, 4, 8, ...$ hasta $2 \times$ el número de núcleos de su CPU) y reporte los tiempos $T_p(N)$.
-3. **Tabla de Resultados**: Presente una tabla con las métricas de rendimiento calculadas:
-
-   |N (Hilos)|$T_p$​ (segundos)|Speedup $(T_s​/T_p)$​|Eficiencia ($Speedup/N$)|
-   |---|---|---|---|
-   |1|...|...|...|
-   |2|...|...|...|
-   |4|...|...|...|
-   |8|...|...|...|
-   |16|...|...|...|
-
-4. **Gráfico de Speedup**: Incluya un gráfico de líneas (N Hilos vs. Speedup).
-
-5. **Análisis de Resultados (Parte 1):**
-   * Realice una comparación entre el rendimiento de $T_p(1)$ y $T_s$. Explique cualquier discrepancia (overhead).
-   * Analice el Speedup máximo alcanzado. ¿Cómo se compara con el número de núcleos físicos de su sistema?
-   * Describa la tendencia de la eficiencia a medida que $N$ incrementa y explique las causas de dicho comportamiento.
-
-### Sección 2: Análisis de Fibonacci
-
-1. **Resultados de Ejecución**: Incluya la salida de su programa `./fibonacci 15`.
-2. **Análisis del Diseño (Parte 2)**:
-   * Describa el mecanismo utilizado para transferir datos (el puntero al arreglo y $N$) del hilo principal al hilo trabajador.
-   * Explique el rol de `pthread_join` como mecanismo de sincronización en este problema, asegurando que `main` no acceda a los resultados antes de que sean generados.
-
-## 7. Video de Sustentación
-
-Adicionalmente al Jupyter Notebook, deberá grabar un video corto (máximo 5 minutos) explicando el procedimiento realizado.
-* **Contenido del Video**:
-  1. **Explicación del Código (Parte 1)**: Muestre brevemente la estrategia de paralelización en `pi_p.c` (cómo dividió el bucle y recolectó los resultados)
-  2. **Explicación del Código (Parte 2)**: Muestre cómo implementó el paso del arreglo compartido y la sincronización en `fibonacci.c`.
-  3. **Demostración**: Ejecute `pi_s`, `pi_p` (con 1 hilo y $N$ hilos) y `fibonacci`.
-  4. **Análisis**: Muestre su gráfico de Speedup y explique brevemente sus conclusiones sobre el rendimiento.
-* **Entrega**: 
-  * Suba el video a YouTube (puede configurarlo como "No listado").
-  * Incluya el enlace al video en la primera celda (celda de texto) de su Jupyter Notebook `analisis.ipynb`.
-
-## 8. Referencias
-
-* Remzi H. Arpaci-Dusseau & Andrea C. Arpaci-Dusseau. *Operating Systems: Three Easy Pieces*.
-  * **Capítulo 26**: Threads Intro [[pdf]](https://pages.cs.wisc.edu/~remzi/OSTEP/threads-intro.pdf)
-  * **Capítulo 27**: Thread API [[pdf]](https://pages.cs.wisc.edu/~remzi/OSTEP/threads-api.pdf)
-  * **Diapositivas de apoyo**: Interlude: Thread_API [[pdf]](27.Interlude_Thread_API.pdf) 
-
+-   Grama, Gupta, Karypis & Kumar -- *Introduction to Parallel
+    Computing*.
+-   Amdahl, G. M. (1967). *Validity of the Single Processor Approach to
+    Achieving Large-Scale Computing Capabilities*.
+-   Foster, I. -- *Designing and Building Parallel Programs*.
